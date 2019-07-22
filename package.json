@@ -34,5 +34,9 @@
   },
   "devDependencies": {
     "mocha": "^5.2.0"
+  },
+  "directories": {
+    "example": "examples",
+    "test": "test"
   }
 }
