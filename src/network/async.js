@@ -1,4 +1,4 @@
-(function() {
+(function () {
     /*
      * Async module to handle async messaging
      * @module Async
@@ -13,20 +13,14 @@
          *******************************************************/
 
         var PodSocketClass,
-            PodUtility,
-            PodActiveMQ,
-            PodMQTT;
+            PodUtility;
 
         if (typeof(require) !== 'undefined' && typeof(exports) !== 'undefined') {
             PodSocketClass = require('./socket.js');
-            PodActiveMQ = require('./activemq.js');
-            PodMQTT = require('./mqtt.js');
             PodUtility = require('../utility/utility.js');
         }
         else {
             PodSocketClass = POD.Socket;
-            PodMQTT = POD.MQTT;
-            PodActiveMQ = POD.ActiveMQ;
             PodUtility = POD.AsyncUtility;
         }
 
@@ -46,7 +40,6 @@
             },
             ackCallback = {},
             socket,
-            activemq,
             asyncMessageType = {
                 PING: 0,
                 SERVER_REGISTER: 1,
@@ -100,23 +93,15 @@
          *            P R I V A T E   M E T H O D S            *
          *******************************************************/
 
-        var init = function() {
+        var init = function () {
                 switch (protocol) {
                     case 'websocket':
                         initSocket();
                         break;
-
-                    case 'queue':
-                        initActiveMQ();
-                        break;
-
-                    case 'mqtt':
-                        initMQTT();
-                        break;
                 }
             },
 
-            asyncLogger = function(type, msg) {
+            asyncLogger = function (type, msg) {
                 Utility.asyncLogger({
                     protocol: protocol,
                     workerId: workerId,
@@ -132,7 +117,7 @@
                 });
             },
 
-            initSocket = function() {
+            initSocket = function () {
                 socket = new PodSocketClass({
                     socketAddress: params.socketAddress,
                     wsConnectionWaitTime: params.wsConnectionWaitTime,
@@ -140,7 +125,7 @@
                     connectionCheckTimeoutThreshold: params.connectionCheckTimeoutThreshold
                 });
 
-                checkIfSocketHasOpennedTimeoutId = setTimeout(function() {
+                checkIfSocketHasOpennedTimeoutId = setTimeout(function () {
                     if (!isSocketOpen) {
                         fireEvent('error', {
                             errorCode: 4001,
@@ -149,7 +134,7 @@
                     }
                 }, 65000);
 
-                socket.on('open', function() {
+                socket.on('open', function () {
                     checkIfSocketHasOpennedTimeoutId && clearTimeout(checkIfSocketHasOpennedTimeoutId);
                     socketReconnectRetryInterval && clearTimeout(socketReconnectRetryInterval);
                     socketReconnectCheck && clearTimeout(socketReconnectCheck);
@@ -167,14 +152,14 @@
                     });
                 });
 
-                socket.on('message', function(msg) {
+                socket.on('message', function (msg) {
                     handleSocketMessage(msg);
                     if (onReceiveLogging) {
                         asyncLogger('Receive', msg);
                     }
                 });
 
-                socket.on('close', function(event) {
+                socket.on('close', function (event) {
                     isSocketOpen = false;
                     isDeviceRegister = false;
                     oldPeerId = peerId;
@@ -212,7 +197,7 @@
 
                         socketReconnectRetryInterval && clearTimeout(socketReconnectRetryInterval);
 
-                        socketReconnectRetryInterval = setTimeout(function() {
+                        socketReconnectRetryInterval = setTimeout(function () {
                             socket.connect();
                         }, 1000 * retryStep);
 
@@ -260,7 +245,7 @@
 
                 });
 
-                socket.on('customError', function(error) {
+                socket.on('customError', function (error) {
                     fireEvent('error', {
                         errorCode: error.errorCode,
                         errorMessage: error.errorMessage,
@@ -268,7 +253,7 @@
                     });
                 });
 
-                socket.on('error', function(error) {
+                socket.on('error', function (error) {
                     fireEvent('error', {
                         errorCode: '',
                         errorMessage: '',
@@ -277,110 +262,11 @@
                 });
             },
 
-            initActiveMQ = function() {
-                activemq = new PodActiveMQ({
-                    username: params.queueUsername,
-                    password: params.queuePassword,
-                    host: params.queueHost,
-                    port: params.queuePort,
-                    timeout: params.queueConnectionTimeout
-                });
-
-                activemq.on('init', function() {
-                    fireEvent('asyncReady');
-
-                    socketState = socketStateType.OPEN;
-                    fireEvent('stateChange', {
-                        queueState: socketState
-                    });
-
-                    pushSendDataQueueHandler();
-
-                    activemq.subscribe({
-                        destination: params.queueReceive,
-                        ack: 'client-individual'
-                    }, function(message) {
-                        handleSocketMessage(JSON.parse(message));
-                        if (onReceiveLogging) {
-                            asyncLogger('Receive', JSON.parse(message));
-                        }
-                    });
-
-                });
-
-                activemq.on('error', function(msg) {
-                    fireEvent('error', msg);
-
-                    socketState = socketStateType.CLOSED;
-
-                    fireEvent('stateChange', {
-                        queueState: socketState
-                    });
-                });
-            },
-
-            initMQTT = function() {
-                mqtt = new PodMQTT({
-                    keepalive: params.keepalive || 60,
-                    reschedulePings: (typeof params.reschedulePings == 'boolean') ? params.reschedulePings : true,
-                    clientId: params.mqttClientId.toString() || 'podmqtt_' + Math.random()
-                        .toString(16)
-                        .substr(2, 8),
-                    protocolId: params.protocolId || 'MQTT',
-                    protocolVersion: params.protocolVersion || 4,
-                    clean: (typeof params.clean == 'boolean') ? params.clean : true,
-                    reconnectPeriod: params.reconnectPeriod || 1000,
-                    connectTimeout: params.connectTimeout || 30 * 1000,
-                    username: params.mqttUsername,
-                    password: params.mqttPassword,
-                    resubscribe: (typeof params.resubscribe == 'boolean') ? params.resubscribe : true,
-                    host: params.mqttHost,
-                    port: params.mqttPort,
-                    inputQueueName: params.mqttInputQueueName,
-                    outputQueueName: params.mqttOutputQueueName
-                });
-
-                mqtt.on('connect', function() {
-                    mqtt.subscribe({destination: [params.mqttInputQueueName]}, function(err, granted) {
-                        if (err) {
-                            fireEvent('error', err);
-                        }
-                        else {
-                            fireEvent('asyncReady');
-                            socketState = socketStateType.OPEN;
-                            fireEvent('stateChange', {
-                                queueState: socketState
-                            });
-
-                            console.log("Call Register Server once");
-                            registerServer();
-                        }
-                    });
-                });
-
-                mqtt.on('message', function(message) {
-                    handleSocketMessage(JSON.parse(message));
-                    if (onReceiveLogging) {
-                        asyncLogger('Receive', JSON.parse(message));
-                    }
-                });
-
-                mqtt.on('error', function(msg) {
-                    fireEvent('error', msg);
-
-                    socketState = socketStateType.CLOSED;
-
-                    fireEvent('stateChange', {
-                        queueState: socketState
-                    });
-                });
-            },
-
-            handleSocketMessage = function(msg) {
+            handleSocketMessage = function (msg) {
                 var ack;
 
                 if (msg.type === asyncMessageType.MESSAGE_ACK_NEEDED || msg.type === asyncMessageType.MESSAGE_SENDER_ACK_NEEDED) {
-                    ack = function() {
+                    ack = function () {
                         pushSendData({
                             type: asyncMessageType.ACK,
                             content: {
@@ -431,7 +317,7 @@
                 }
             },
 
-            handlePingMessage = function(msg) {
+            handlePingMessage = function (msg) {
                 if (msg.content) {
                     if (deviceId === undefined) {
                         deviceId = msg.content;
@@ -453,7 +339,7 @@
                 }
             },
 
-            registerDevice = function(isRetry) {
+            registerDevice = function (isRetry) {
                 if (asyncLogging) {
                     if (workerId > 0) {
                         Utility.asyncStepLogger(workerId + '\t Registering Device');
@@ -481,7 +367,7 @@
                 });
             },
 
-            handleDeviceRegisterMessage = function(recievedPeerId) {
+            handleDeviceRegisterMessage = function (recievedPeerId) {
                 if (!isDeviceRegister) {
                     if (registerDeviceTimeoutId) {
                         clearTimeout(registerDeviceTimeoutId);
@@ -548,7 +434,7 @@
                 }
             },
 
-            registerServer = function() {
+            registerServer = function () {
 
                 if (asyncLogging) {
                     if (workerId > 0) {
@@ -568,14 +454,14 @@
                     content: content
                 });
 
-                registerServerTimeoutId = setTimeout(function() {
+                registerServerTimeoutId = setTimeout(function () {
                     if (!isServerRegister) {
                         registerServer();
                     }
                 }, connectionRetryInterval);
             },
 
-            handleServerRegisterMessage = function(msg) {
+            handleServerRegisterMessage = function (msg) {
                 if (msg.senderName && msg.senderName === serverName) {
                     isServerRegister = true;
 
@@ -609,7 +495,7 @@
                 }
             },
 
-            pushSendData = function(msg) {
+            pushSendData = function (msg) {
                 if (onSendLogging) {
                     asyncLogger('Send', msg);
                 }
@@ -623,48 +509,24 @@
                             pushSendDataQueue.push(msg);
                         }
                         break;
-
-                    case 'queue':
-                        if (socketState === socketStateType.OPEN) {
-                            activemq.sendMessage({
-                                destination: params.queueSend,
-                                message: msg
-                            });
-                        }
-                        else {
-                            pushSendDataQueue.push(msg);
-                        }
-                        break;
-
-                    case 'mqtt':
-                        if (socketState === socketStateType.OPEN) {
-                            mqtt.sendMessage({
-                                destination: params.mqttOutputQueueName,
-                                message: msg
-                            });
-                        }
-                        else {
-                            pushSendDataQueue.push(msg);
-                        }
-                        break;
                 }
             },
 
-            clearTimeouts = function() {
+            clearTimeouts = function () {
                 registerDeviceTimeoutId && clearTimeout(registerDeviceTimeoutId);
                 registerServerTimeoutId && clearTimeout(registerServerTimeoutId);
                 checkIfSocketHasOpennedTimeoutId && clearTimeout(checkIfSocketHasOpennedTimeoutId);
                 socketReconnectCheck && clearTimeout(socketReconnectCheck);
             },
 
-            pushSendDataQueueHandler = function() {
+            pushSendDataQueueHandler = function () {
                 while (pushSendDataQueue.length > 0 && socketState === socketStateType.OPEN) {
                     var msg = pushSendDataQueue.splice(0, 1)[0];
                     pushSendData(msg);
                 }
             },
 
-            fireEvent = function(eventName, param, ack) {
+            fireEvent = function (eventName, param, ack) {
                 try {
                     if (ack) {
                         for (var id in eventCallbacks[eventName]) {
@@ -690,7 +552,7 @@
          *             P U B L I C   M E T H O D S             *
          *******************************************************/
 
-        this.on = function(eventName, callback) {
+        this.on = function (eventName, callback) {
             if (eventCallbacks[eventName]) {
                 var id = Utility.generateUUID();
                 eventCallbacks[eventName][id] = callback;
@@ -701,12 +563,12 @@
             }
         };
 
-        this.send = function(params, callback) {
+        this.send = function (params, callback) {
             var messageType = (typeof params.type === 'number')
                 ? params.type
                 : (callback)
-                                  ? asyncMessageType.MESSAGE_SENDER_ACK_NEEDED
-                                  : asyncMessageType.MESSAGE;
+                    ? asyncMessageType.MESSAGE_SENDER_ACK_NEEDED
+                    : asyncMessageType.MESSAGE;
 
             var socketData = {
                 type: messageType,
@@ -721,7 +583,7 @@
             var messageId = lastMessageId;
 
             if (messageType === asyncMessageType.MESSAGE_SENDER_ACK_NEEDED || messageType === asyncMessageType.MESSAGE_ACK_NEEDED) {
-                ackCallback[messageId] = function() {
+                ackCallback[messageId] = function () {
                     callback && callback();
                 };
             }
@@ -732,31 +594,31 @@
             pushSendData(socketData);
         };
 
-        this.getAsyncState = function() {
+        this.getAsyncState = function () {
             return socketState;
         };
 
-        this.getSendQueue = function() {
+        this.getSendQueue = function () {
             return pushSendDataQueue;
         };
 
-        this.getPeerId = function() {
+        this.getPeerId = function () {
             return peerId;
         };
 
-        this.getServerName = function() {
+        this.getServerName = function () {
             return serverName;
         };
 
-        this.setServerName = function(newServerName) {
+        this.setServerName = function (newServerName) {
             serverName = newServerName;
         };
 
-        this.setDeviceId = function(newDeviceId) {
+        this.setDeviceId = function (newDeviceId) {
             deviceId = newDeviceId;
         };
 
-        this.close = function() {
+        this.close = function () {
             oldPeerId = peerId;
             isDeviceRegister = false;
             isSocketOpen = false;
@@ -776,18 +638,10 @@
                     socketReconnectRetryInterval && clearTimeout(socketReconnectRetryInterval);
                     socket.close();
                     break;
-
-                case 'queue':
-                    activemq.disconnect();
-                    break;
-
-                case 'mqtt':
-                    mqtt.end();
-                    break;
             }
         };
 
-        this.logout = function() {
+        this.logout = function () {
             oldPeerId = peerId;
             peerId = undefined;
             isServerRegister = false;
@@ -813,18 +667,10 @@
 
                     socket.close();
                     break;
-
-                case 'queue':
-                    activemq.destroy();
-                    break;
-
-                case 'mqtt':
-                    mqtt.end();
-                    break;
             }
         };
 
-        this.reconnectSocket = function() {
+        this.reconnectSocket = function () {
             oldPeerId = peerId;
             isDeviceRegister = false;
             isSocketOpen = false;
@@ -842,7 +688,7 @@
             socketReconnectRetryInterval && clearTimeout(socketReconnectRetryInterval);
             socket.close();
 
-            socketReconnectRetryInterval = setTimeout(function() {
+            socketReconnectRetryInterval = setTimeout(function () {
                 retryStep = 4;
                 socket.connect();
             }, 2000);

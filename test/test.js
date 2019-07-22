@@ -1,8 +1,6 @@
 var assert = require('assert');
 var WebSocket = require('ws');
 var PodSocket = require('../src/network/socket.js');
-var PodActiveMQ = require('../src/network/activemq.js');
-var PodMQTT = require('../src/network/mqtt.js');
 var Async = require('../src/network/async.js');
 
 var DEVICE_IDS = {
@@ -12,8 +10,8 @@ var DEVICE_IDS = {
 
 var websocketParams = {
   protocol: "websocket",
-  socketAddress: "ws://172.16.106.26:8003/ws",
-  serverName: "chat-server",
+  socketAddress: "ws://172.16.110.131:8003/ws",
+  serverName: "chat-server2",
   deviceId: DEVICE_IDS.DEVICEID_1,
   reconnectOnClose: false,
   consoleLogging: {
@@ -26,40 +24,6 @@ var websocketParams = {
 var websocketParams2 = Object.assign({}, websocketParams);
 websocketParams2.deviceId = DEVICE_IDS.DEVICEID_2;
 
-var queueParams = {
-  protocol: "queue",
-  queueHost: "172.16.0.248",
-  queuePort: "61613",
-  queueUsername: "root",
-  queuePassword: "zalzalak",
-  queueReceive: "queue-in-amjadi-stomp",
-  queueSend: "queue-out-amjadi-stomp",
-  queuePeerId: "7313836",
-  queueConnectionTimeout: 20000,
-  asyncLogging: {
-    onFunction: true,
-    onMessageReceive: true,
-    onMessageSend: true
-  }
-};
-
-var mqttParams = {
-    protocol: 'mqtt',
-    mqttHost: '172.16.106.26',
-    mqttPort: '1883',
-    mqttUsername: 'root',
-    mqttPassword: 'zalzalak',
-    mqttConnectionTimeout: 20000,
-    mqttClientId: 1234,
-    mqttInputQueueName: "out/mqqttout",
-    mqttOutputQueueName: "async/chat-server",
-    peerId: 118401,
-    asyncLogging: {
-        onFunction: true,
-        onMessageReceive: true,
-        onMessageSend: true
-    }
-};
 /**
  * Websocket Protocol
  */
@@ -112,72 +76,6 @@ describe('Web Socket Protocol', function() {
       done();
     });
   });
-});
-
-/**
- * ActiveMQ Protocol
- */
-describe('ActiveMQ Protocol via STOMP', function() {
-  var client;
-
-  beforeEach(() => {
-    client = new PodActiveMQ({
-      username: queueParams.queueUsername,
-      password: queueParams.queuePassword,
-      host: queueParams.queueHost,
-      port: queueParams.queuePort,
-      timeout: queueParams.queueConnectionTimeout
-    });
-  });
-
-  afterEach(() => {
-    client.disconnect();
-  });
-
-  it("Should Connect to " + queueParams.queueHost + ":" + queueParams.queuePort, function(done) {
-    client.on("init", function() {
-      done();
-    });
-  });
-});
-
-/**
- * MQTT Protocol
- */
-describe('MQTT Protocol', function() {
-    var client;
-
-    beforeEach(() => {
-        client = new PodMQTT({
-            keepalive: mqttParams.keepalive || 60,
-            reschedulePings: (typeof mqttParams.reschedulePings == 'boolean') ? mqttParams.reschedulePings : true,
-            clientId: mqttParams.mqttClientId.toString() || 'podmqtt_' + Math.random()
-                .toString(16)
-                .substr(2, 8),
-            protocolId: mqttParams.protocolId || 'MQTT',
-            protocolVersion: mqttParams.protocolVersion || 4,
-            clean: (typeof mqttParams.clean == 'boolean') ? mqttParams.clean : true,
-            reconnectPeriod: mqttParams.reconnectPeriod || 1000,
-            connectTimeout: mqttParams.connectTimeout || 30 * 1000,
-            username: mqttParams.mqttUsername,
-            password: mqttParams.mqttPassword,
-            resubscribe: (typeof mqttParams.resubscribe == 'boolean') ? mqttParams.resubscribe : true,
-            host: mqttParams.mqttHost,
-            port: mqttParams.mqttPort,
-            inputQueueName: mqttParams.mqttInputQueueName,
-            outputQueueName: mqttParams.mqttOutputQueueName
-        });
-});
-
-    afterEach(() => {
-        client.end();
-});
-
-    it("Should Connect to " + mqttParams.mqttHost + ":" + mqttParams.mqttPort, function(done) {
-        client.on("connect", function() {
-            done();
-        });
-    });
 });
 
 /**

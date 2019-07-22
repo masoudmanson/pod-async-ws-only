@@ -1,21 +1,23 @@
 {
-  "name": "podasync",
+  "name": "podasync-ws-only",
   "version": "2.7.4",
-  "description": "Fanap's POD Async service (DIRANA)",
+  "description": "Fanap's POD Async service (DIRANA) - Websocket only",
   "main": "./src/network/async.js",
   "scripts": {
     "test": "mocha --reporter spec --exit"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/masoudmanson/pod-async.git"
+    "url": "git+https://github.com/masoudmanson/pod-async-ws-only.git"
   },
   "keywords": [
     "Fanap",
     "POD",
     "Async",
     "Socket",
-    "DIRANA"
+    "DIRANA",
+    "WS",
+    "Websocket"
   ],
   "engines": {
     "node": ">=4.2.4"
@@ -23,18 +25,14 @@
   "author": "Masoud Amjadi <masoudmanson@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/masoudmanson/pod-async/issues"
+    "url": "https://github.com/masoudmanson/pod-async-ws-only/issues"
   },
-  "homepage": "https://github.com/masoudmanson/pod-async#readme",
+  "homepage": "https://github.com/masoudmanson/pod-async-ws-only#readme",
   "dependencies": {
-    "bufferutil": "^4.0.0",
     "isomorphic-ws": "^4.0.1",
-    "mqtt": "^3.0.0",
-    "stompit": "^0.26.0",
-    "utf-8-validate": "^5.0.1",
     "ws": "^4.1.0"
   },
   "devDependencies": {
-    "mocha": "^5.1.1"
+    "mocha": "^5.2.0"
   }
 }
