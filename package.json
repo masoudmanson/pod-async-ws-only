@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/masoudmanson/pod-async-ws-only.git"
+    "url": "git+https://github.com/FanapSoft/pod-async-ws-only-js-sdk.git"
   },
   "keywords": [
     "Fanap",
@@ -25,9 +25,9 @@
   "author": "Masoud Amjadi <masoudmanson@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/masoudmanson/pod-async-ws-only/issues"
+    "url": "https://github.com/FanapSoft/pod-async-ws-only-js-sdk/issues"
   },
-  "homepage": "https://github.com/masoudmanson/pod-async-ws-only#readme",
+  "homepage": "https://github.com/FanapSoft/pod-async-ws-only-js-sdk#readme",
   "dependencies": {
     "isomorphic-ws": "^4.0.1",
     "ws": "^4.1.0"
