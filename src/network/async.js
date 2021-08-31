@@ -527,7 +527,7 @@
             },
 
             fireEvent = function (eventName, param, ack) {
-                try {
+                // try {
                     if (ack) {
                         for (var id in eventCallbacks[eventName]) {
                             eventCallbacks[eventName][id](param, ack);
@@ -538,14 +538,14 @@
                             eventCallbacks[eventName][id](param);
                         }
                     }
-                }
-                catch (e) {
-                    fireEvent('error', {
-                        errorCode: 999,
-                        errorMessage: 'Unknown ERROR!',
-                        errorEvent: e
-                    });
-                }
+                // }
+                // catch (e) {
+                //     fireEvent('error', {
+                //         errorCode: 999,
+                //         errorMessage: 'Unknown ERROR!',
+                //         errorEvent: e
+                //     });
+                // }
             };
 
         /*******************************************************
